@@ -53,7 +53,7 @@ class TACBSExecutionManager(ExecutionManager):
 
 
 class WorksReallyWellExecutionManager(ExecutionManager):
-    def __init__(self, my_map, starts, goals, **kwargs):
+    def __init__(self, my_map, starts, goals, k=0, **kwargs):
         # Initialize the execution manager with whichever parameters you need.
         super().__init__(my_map, starts, goals, k=k)
         self.my_map = my_map
@@ -61,14 +61,83 @@ class WorksReallyWellExecutionManager(ExecutionManager):
         self.goals = goals
         self.k = k
 
+        self.solver = TACBSSolver(self.my_map, self.starts, self.goals, self.k)
+        self.paths = self.solver.find_solution()
+
+        # Progress along each path in "path-timestep" coordinates.
+        self.agent_progress = [0 for _ in self.paths]
+        self.locations = [get_location(path, 0) for path in self.paths]
+
+        # TPG dependency table.
+        # self.tpg_predecessor[a][t] = (pred_agent, pred_t) if agent a at timestep t
+        # depends on that predecessor node; otherwise None.
+        self.tpg_predecessor = [[None for _ in range(len(path))] for path in self.paths]
+        self._build_tpg()
+
+    def _build_tpg(self):
+        """
+        Build temporal precedence constraints for path vertices.
+        """
+        ##############################
+        # TODO: Construct the TPG edges.
+        #
+        # Suggested approach:
+        # 1) Sweep time from 0 to max path length - 1.
+        # 2) Keep a dict "last_visit[loc] -> (agent_id, timestep)".
+        # 3) For each (agent_id, t), if another agent was the last visitor of
+        #    that cell, add a dependency into self.tpg_predecessor[agent_id][t].
+        # 4) Treat consecutive waits of the same agent in one cell as a single
+        #    visit so wait blocks do not generate self-dependencies.
+        pass
+
+    def _next_non_wait_timestep(self, agent_id: int) -> int:
+        """
+        Return the next timestep where this agent leaves its current cell,
+        or the final timestep if it never leaves.
+        """
+        path = self.paths[agent_id]
+        curr_t = self.agent_progress[agent_id]
+        curr_loc = get_location(path, curr_t)
+
+        t = curr_t + 1
+        while t < len(path) and get_location(path, t) == curr_loc:
+            t += 1
+        return min(t, len(path) - 1)
+
+    def _dependency_satisfied(self, agent_id: int, target_t: int) -> bool:
+        """
+        Return True if the TPG predecessor (if any) is already completed.
+        """
+        pred = self.tpg_predecessor[agent_id][target_t]
+        if pred is None:
+            return True
+
+        ##############################
+        # TODO: Replace placeholder with your TPG readiness condition.
+        # Hint: compare predecessor progress to predecessor timestep.
+        return False
+
     def get_next_location_for_all_agents(self) -> List[Tuple[int, int]]:
         """
         Get the next location for all agents.
         :return: List of tuples, each tuple is the next location for an agent at index i. Return empty list if done.
         """
-        ##############################
-        # Implement the next location for all agents.
-        pass
+        if all(self.agent_progress[a] >= len(path) - 1 for a, path in enumerate(self.paths)):
+            return []
+
+        locations = []
+        for agent_id, path in enumerate(self.paths):
+            curr_t = self.agent_progress[agent_id]
+            curr_loc = get_location(path, curr_t)
+
+            next_t = self._next_non_wait_timestep(agent_id)
+            next_loc = get_location(path, next_t)
+
+            can_move = next_loc != curr_loc and self._dependency_satisfied(agent_id, next_t)
+            locations.append(next_loc if can_move else curr_loc)
+
+        self.locations = locations
+        return locations
 
     def feedback_successful_agent_ids(self, agent_ids: List[int]):
         """
@@ -76,6 +145,10 @@ class WorksReallyWellExecutionManager(ExecutionManager):
         :param agent_ids: List of agent IDs that successfully moved.
         :return: None
         """
-        ##############################
-        # Implement the feedback for the agents that successfully moved.
-        pass
+        for agent_id in agent_ids:
+            curr_t = self.agent_progress[agent_id]
+            curr_loc = get_location(self.paths[agent_id], curr_t)
+            next_t = self._next_non_wait_timestep(agent_id)
+
+            if self.locations[agent_id] != curr_loc:
+                self.agent_progress[agent_id] = next_t

@@ -2,7 +2,8 @@ import copy
 import time as timer
 import heapq
 import random
-from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
+from copy import deepcopy
+from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost, get_k_deferred_location
 
 
 def detect_first_collision_for_path_pair(path1, path2, k):
@@ -12,8 +13,23 @@ def detect_first_collision_for_path_pair(path1, path2, k):
     # A vertex collision occurs if both robots occupy the same location at the same timestep
     # An edge collision occurs if the robots swap their location at the same timestep.
     # You should use "get_location(path, t)" to get the location of a robot at time t.
+    max_len = max(len(path1), len(path2))
+    for t in range(max_len):
+        ## VERTEXT COLLISION DETECTION
+        a1_curr = get_k_deferred_location(path1, t, k)  # all places an agent was at in the last k seconds + current
+        a2_curr = get_k_deferred_location(path2, t, k)
+        a2_set = set(a2_curr)
 
-    pass
+        for _t, a1_loc in enumerate(a1_curr):
+            if a1_loc in a2_set:
+                return a1_loc, path1.index(a1_loc), path2.index(a1_loc)
+
+        ## EDGE COLLISION DETECTION
+        a1_prev = get_location(path1, t - 1)
+        a2_prev = get_location(path2, t - 1)
+        if a1_curr[-1] == a2_prev and a2_curr[-1] == a1_prev:
+            return [a1_prev, a1_curr], t
+    return None, None
 
 
 def detect_collisions_among_all_paths(paths, k):
@@ -22,8 +38,26 @@ def detect_collisions_among_all_paths(paths, k):
     # A collision can be represented as dictionary that contains the id of the two robots, the vertex or edge
     # causing the collision, and the timestep at which the collision occurred.
     # You should use your detect_collision function to find a collision between two robots.
+    retval = []
 
-    pass
+    for a1_idx in range(len(paths)):
+        for a2_idx in range(a1_idx + 1, len(paths)):
+            coll = detect_first_collision_for_path_pair(paths[a1_idx], paths[a2_idx], k)
+            if len(coll) == 3:  # k-deferred vertex collision
+                coll_loc, a1_t, a2_t = coll
+                retval.append({"a1": a1_idx,
+                               "a2": a2_idx,
+                               "loc": [coll_loc],
+                               "timestep": (a1_t, a2_t)})
+
+            elif len(coll) == 2 and coll[0] is not None: # edge collision
+                (a1_prev, a1_curr), coll_t = coll
+                retval.append({"a1": a1_idx,
+                               "a2": a2_idx,
+                               "loc": [(a1_prev, a1_curr)],
+                               "timestep": (coll_t, coll_t)})
+
+    return retval
 
 
 def standard_splitting(collision):
@@ -35,12 +69,39 @@ def standard_splitting(collision):
     # Edge collision: the first constraint prevents the first agent to traverse the specified edge at the
     #                specified timestep, and the second constraint prevents the second agent to traverse the
     #                specified edge at the specified timestep
+    if len(collision["loc"]) == 1:
+        a1_constraint = {
+            "agent": collision["a1"],
+            "loc": collision["loc"],
+            "timestep": collision["timestep"][0]
+        }
 
-    pass
+        a2_constraint = {
+            "agent": collision["a2"],
+            "loc": collision["loc"],
+            "timestep": collision["timestep"][1]
+        }
+    elif len(collision["loc"]) == 2:
+        a1_constraint = {
+            "agent": collision["a1"],
+            "loc": collision["loc"],
+            "timestep": collision["timestep"][0]
+        }
+
+        a2_constraint = {
+            "agent": collision["a2"],
+            "loc": [collision["loc"][1], collision["loc"][0]],
+            "timestep": collision["timestep"][1]
+        }
+    else:
+        raise ValueError("Impossible State in Standard Splitting")
+
+    return a1_constraint, a2_constraint
 
 
 class KRCBSSolver(object):
     """The high-level search of K-Robust CBS."""
+
     def __init__(self, my_map, starts, goals, k=0):
         """my_map   - list of lists specifying obstacle positions
         starts      - [(x1, y1), (x2, y2), ...] list of start locations
@@ -57,6 +118,7 @@ class KRCBSSolver(object):
         self.num_of_generated = 0
         self.num_of_expanded = 0
         self.CPU_time = 0
+        self.a_star_calls = 0
 
         self.open_list = []
 
@@ -92,6 +154,7 @@ class KRCBSSolver(object):
                 'constraints': [],
                 'paths': [],
                 'collisions': []}
+
         for i in range(self.num_of_agents):  # Find initial path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
                           i, root['constraints'])
@@ -102,6 +165,33 @@ class KRCBSSolver(object):
         root['cost'] = get_sum_of_cost(root['paths'])
         root['collisions'] = detect_collisions_among_all_paths(root['paths'], self.k)
         self.push_node(root)
+
+        while len(self.open_list) > 0:
+            curr_node = self.pop_node()
+
+            if len(curr_node["collisions"]) == 0:
+                self.print_results(root)
+                return curr_node["paths"]
+
+            print(self.a_star_calls)
+            if self.a_star_calls > 5000:
+                raise BaseException("NO VALID PATH NOT FOUND")
+
+            collision = curr_node["collisions"][0]
+            constraints = standard_splitting(collision)
+
+            self.a_star_calls += 1
+            for constraint in constraints:
+                neighbor = deepcopy(curr_node)
+                neighbor["constraints"].append(constraint)
+                agent_idx = constraint["agent"]
+                path = a_star(self.my_map, self.starts[agent_idx], self.goals[agent_idx], self.heuristics[agent_idx],
+                              agent_idx, neighbor["constraints"])
+                if path is not None:
+                    neighbor["paths"][agent_idx] = path
+                    neighbor["collisions"] = detect_collisions_among_all_paths(neighbor["paths"], self.k)
+                    neighbor["cost"] = get_sum_of_cost(neighbor["paths"])
+                    self.push_node(neighbor)
 
         ##############################
         # High-Level Search
@@ -114,8 +204,7 @@ class KRCBSSolver(object):
 
         # These are just to print debug output - can be modified once you implement the high-level search
         # self.print_results(root)
-        # return root['paths']
-        pass
+        print("!!!! PATH NOT FOUND !!!!")
 
     def print_results(self, node):
         print("\n Found a solution! \n")

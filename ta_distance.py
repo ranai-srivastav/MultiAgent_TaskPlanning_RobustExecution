@@ -33,13 +33,21 @@ class TaDistanceSolver(KRCBSSolver):
         # Implement Distance-Based Task Assignment
         #           Populate self.goals with one goal for each agent -- matched by their order in the lists.
         #           To do so, please implement the `hungarian_algorithm` function in `hungarian.py`.
-        self.goals = []
-        raise NotImplementedError("Implement Distance-Based Task Assignment")
 
         # Compute heuristics for the low-level search.
         self.heuristics = []
         for goal in self.goals:
             self.heuristics.append(compute_heuristics(my_map, goal))
 
+        agent_goal_costs = []
+
+        for agent_idx, agent_start in enumerate(self.starts):
+            agent_cost_per_goal = []
+            for goal_idx in range(self.num_of_agents):
+                agent_cost_per_goal.append(self.heuristics[goal_idx][agent_start])  # MAD cache misses
+            agent_goal_costs.append(agent_cost_per_goal)
+
+        self.goals_ids = hungarian_algorithm(agent_goal_costs)
+        self.goals = [self.goals[idx] for idx in self.goals_ids]
         # The parameter for K-Robust CBS.
         self.k = k

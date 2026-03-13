@@ -1,6 +1,8 @@
+import random
 import numpy as np
 from numpy import typing as npt
 from scipy.optimize import linear_sum_assignment
+from typing import List, Dict
 
 
 def min_num_lines(M: npt.NDArray):
@@ -34,7 +36,7 @@ def min_num_lines(M: npt.NDArray):
     """
     row_ids, col_ids = np.where(M == 0)  #
     row_lines, col_lines = [], []
-    mask = np.ones_like(M)
+    mask = np.ones_like(M).astype(bool)
     crosses = 0
     while True:
         if len(row_ids) == 0 or len(col_ids) == 0:
@@ -84,7 +86,7 @@ def min_num_lines(M: npt.NDArray):
                     idx += 1
 
 
-def hungarian_algorithm(agent_goal_costs: dict):
+def broken_hungarian_algorithm(agent_goal_costs: dict):
     """
     :param agent_goal_costs: A dictionary mapping agent ids to a list of costs for each goal.
                             The order of goals is the same for all agents.
@@ -165,6 +167,9 @@ def hungarian_algorithm(agent_goal_costs: dict):
     return mapping
 
 
-
-
-
+def hungarian_algorithm(agent_goal_costs: List[List[int]]) -> List[int]:
+    """
+    Solves the assignment problem using scipy's linear_sum_assignment :/
+    """
+    rows_ids, col_ids = linear_sum_assignment(agent_goal_costs)
+    return col_ids

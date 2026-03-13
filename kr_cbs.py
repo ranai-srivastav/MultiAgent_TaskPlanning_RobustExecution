@@ -19,17 +19,17 @@ def detect_first_collision_for_path_pair(path1, path2, k):
         loc1 = get_location(path1, t)
         loc2 = get_location(path2, t)
 
-        ## VERTEX COLLISION DETECTION (k-delay: path1[t] vs path2[t:t+k]
+        ## VERTEX COLLISION DETECTION from 1s perspective for 2's future
         for delta in range(k + 1):
             if loc1 == get_location(path2, t + delta):
                 return {'loc': [loc1], 'a1_t': t, 'a2_t': t + delta}
 
-        # Symmetric check: path2[t] vs path1[t:t+k]
+        ## VERTEXT COLLISION DETECTION from 2s perspective for 1's future k steps
         for delta in range(1, k + 1):
             if loc2 == get_location(path1, t + delta):
                 return {'loc': [loc2], 'a1_t': t + delta, 'a2_t': t}
 
-        ## EDGE COLLISION DETECTION (only needed for k=0
+        ## EDGE COLLISION DETECTION (only needed for k=0)
         if k == 0 and t > 0:
             prev1 = get_location(path1, t - 1)
             prev2 = get_location(path2, t - 1)

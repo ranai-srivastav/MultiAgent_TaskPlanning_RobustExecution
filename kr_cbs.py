@@ -5,6 +5,7 @@ import random
 from copy import deepcopy
 from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost, get_k_deferred_location
 
+DEBUG = False
 
 def detect_first_collision_for_path_pair(path1, path2, k):
     ##############################
@@ -15,21 +16,27 @@ def detect_first_collision_for_path_pair(path1, path2, k):
     # You should use "get_location(path, t)" to get the location of a robot at time t.
     max_len = max(len(path1), len(path2))
     for t in range(max_len):
-        ## VERTEXT COLLISION DETECTION
-        a1_curr = get_k_deferred_location(path1, t, k)  # all places an agent was at in the last k seconds + current
-        a2_curr = get_k_deferred_location(path2, t, k)
-        a2_set = set(a2_curr)
+        loc1 = get_location(path1, t)
+        loc2 = get_location(path2, t)
 
-        for _t, a1_loc in enumerate(a1_curr):
-            if a1_loc in a2_set:
-                return a1_loc, path1.index(a1_loc), path2.index(a1_loc)
+        ## VERTEX COLLISION DETECTION (k-delay: path1[t] vs path2[t:t+k]
+        for delta in range(k + 1):
+            if loc1 == get_location(path2, t + delta):
+                return {'loc': [loc1], 'a1_t': t, 'a2_t': t + delta}
 
-        ## EDGE COLLISION DETECTION
-        a1_prev = get_location(path1, t - 1)
-        a2_prev = get_location(path2, t - 1)
-        if a1_curr[-1] == a2_prev and a2_curr[-1] == a1_prev:
-            return [a1_prev, a1_curr], t
-    return None, None
+        # Symmetric check: path2[t] vs path1[t:t+k]
+        for delta in range(1, k + 1):
+            if loc2 == get_location(path1, t + delta):
+                return {'loc': [loc2], 'a1_t': t + delta, 'a2_t': t}
+
+        ## EDGE COLLISION DETECTION (only needed for k=0
+        if k == 0 and t > 0:
+            prev1 = get_location(path1, t - 1)
+            prev2 = get_location(path2, t - 1)
+            if loc1 == prev2 and loc2 == prev1:
+                return {'loc': [prev1, loc1], 'a1_t': t, 'a2_t': t}
+
+    return None
 
 
 def detect_collisions_among_all_paths(paths, k):
@@ -43,19 +50,11 @@ def detect_collisions_among_all_paths(paths, k):
     for a1_idx in range(len(paths)):
         for a2_idx in range(a1_idx + 1, len(paths)):
             coll = detect_first_collision_for_path_pair(paths[a1_idx], paths[a2_idx], k)
-            if len(coll) == 3:  # k-deferred vertex collision
-                coll_loc, a1_t, a2_t = coll
+            if coll is not None:
                 retval.append({"a1": a1_idx,
                                "a2": a2_idx,
-                               "loc": [coll_loc],
-                               "timestep": (a1_t, a2_t)})
-
-            elif len(coll) == 2 and coll[0] is not None: # edge collision
-                (a1_prev, a1_curr), coll_t = coll
-                retval.append({"a1": a1_idx,
-                               "a2": a2_idx,
-                               "loc": [(a1_prev, a1_curr)],
-                               "timestep": (coll_t, coll_t)})
+                               "loc": coll['loc'],
+                               "timestep": (coll['a1_t'], coll['a2_t'])})
 
     return retval
 
@@ -170,10 +169,12 @@ class KRCBSSolver(object):
             curr_node = self.pop_node()
 
             if len(curr_node["collisions"]) == 0:
-                self.print_results(root)
+                self.print_results(curr_node)
                 return curr_node["paths"]
 
-            print(self.a_star_calls)
+            if DEBUG:
+                print(self.a_star_calls)
+
             if self.a_star_calls > 5000:
                 raise BaseException("NO VALID PATH NOT FOUND")
 
@@ -191,6 +192,8 @@ class KRCBSSolver(object):
                     neighbor["paths"][agent_idx] = path
                     neighbor["collisions"] = detect_collisions_among_all_paths(neighbor["paths"], self.k)
                     neighbor["cost"] = get_sum_of_cost(neighbor["paths"])
+                    if DEBUG:
+                        print(f"Neighbor with path {path}, constraint {constraint}, and {neighbor['collisions']} collisions.")
                     self.push_node(neighbor)
 
         ##############################

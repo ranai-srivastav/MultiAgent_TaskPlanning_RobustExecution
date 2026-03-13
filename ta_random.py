@@ -32,8 +32,10 @@ class TaRandomSolver(KRCBSSolver):
         # Randomly assign tasks to agents. This will be done by populating the self.goals list.
         # The self.goals list should contain the goal location for each agent.
         # In this assignment we assume an equal number of agents and goals.
-        self.goals = []
-        raise NotImplementedError("Implement Random Task Assignment.")
+        candidates = deepcopy(goals)
+        random.shuffle(candidates)
+
+        self.goals = candidates
 
         # After the goals are set, compute heuristics for the low-level search.
         self.heuristics = []

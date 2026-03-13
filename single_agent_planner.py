@@ -248,6 +248,10 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
     prev_goal_timestep = 0
     h_value = h_values[start_loc]
     agent_table = build_constraint_table(constraints, agent)
+
+    # If the start position is forbidden at t=0, no path exists
+    if is_constrained(start_loc, start_loc, 0, agent_table):
+        return None
     root = {'loc': start_loc,
             'g_val': 0,
             'h_val': h_value,

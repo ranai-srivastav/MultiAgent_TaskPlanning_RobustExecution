@@ -154,10 +154,13 @@ Generated nodes: 5
     algorithm assumes a static map, it cannot take a changed map into account because of it's allocations and plans a suboptimal path.
 
 \section*{Task 8}
-    This is not possible.
-    The Hungarian algorithm is optimal and complete for a bipartite graph given that an assignment does not cause a change in the graph.
+    This is not possible if all agents can reach all goals at the start and all edges are bi-directional.
+    The Hungarian algorithm is optimal and complete for a bipartite graph given that an assignment does not cause a change in the graph and no mistakes are made in assigning agents (quadruped gets assigned aerial goal).
     If the costs change because of the assignment, the hungarian algorithm does not take this into account.
     But if the only thing is that the map changes, if a path exists, CBS will find it, even if it is HIGHLY suboptimal.
+    If the robot traverses a path that is 1 directional - it can go through a turnstile only in one direction, then in
+    that case, the robot will not be able to come back and an example can be constructed where the agent gets assigned a task it cannot reach.
+
 
     In a trivial 1D case, the cost minimizing distance is always one that maintains the order.
     \begin{figure}[H]
@@ -168,8 +171,9 @@ Generated nodes: 5
 
     In more complex cases, CBS will usually be able to find a path as long as all nodes are reachable from all nodes and costs are computed optimally.
 
-\section*{Task 9}
-\section*{Task 10}
+\section*{Task 9 - Implemented in code}
+
+\section*{Task 10 - }
 \section*{Task 11}
 \section*{Task 12}
 \section*{Task 13}
@@ -177,6 +181,5 @@ Generated nodes: 5
 \section*{Task 15}
 \section*{Task 16}
 \section*{Task 17}
-\section*{Task 18}
 
 \end{document} % Done!

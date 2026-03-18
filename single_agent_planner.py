@@ -232,7 +232,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
 
     # If the start position is forbidden at t=0, no path exists
     if is_constrained(start_loc, start_loc, 0, agent_table):
-        return None
+        return None, float('inf')
     root = {'loc': start_loc,
             'g_val': 0,
             'h_val': h_value,
@@ -246,7 +246,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
         curr = pop_node(open_list)
 
         if max_path_length != -1 and curr["timestep"] > max_path_length:
-            return None
+            return None, float('inf')
 
         #############################
         # Task 2.2: Adjust the goal test condition to handle goal constraints
@@ -288,4 +288,4 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
                 closed_list[(child['loc'], child["timestep"])] = child
                 push_node(open_list, child)
 
-    return None  # Failed to find solutions
+    return None, float('inf')  # Failed to find solutions

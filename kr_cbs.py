@@ -150,6 +150,8 @@ class KRCBSSolver(object):
         #               [[(x11, y11), (x12, y12), ...], [(x21, y21), (x22, y22), ...], ...]
         # collisions     - list of collisions in paths
         root = {'cost': 0,
+                'agent_costs': [],
+                'tot_path_len': 0,
                 'constraints': [],
                 'paths': [],
                 'collisions': []}
@@ -160,8 +162,10 @@ class KRCBSSolver(object):
             if path is None:
                 raise BaseException('No solutions')
             root['paths'].append(path)
+            root['agent_costs'].append(path_cost)
 
-        root['cost'] = get_sum_of_path_lengths(root['paths'])
+        root['cost'] = sum(root['agent_costs'])
+        root['tot_path_len'] = get_sum_of_path_lengths(root['paths'])
         root['collisions'] = detect_collisions_among_all_paths(root['paths'], self.k)
         self.push_node(root)
 
@@ -186,12 +190,14 @@ class KRCBSSolver(object):
                 neighbor = deepcopy(curr_node)
                 neighbor["constraints"].append(constraint)
                 agent_idx = constraint["agent"]
-                path = a_star(self.my_map, self.starts[agent_idx], self.goals[agent_idx], self.heuristics[agent_idx],
+                path, path_cost = a_star(self.my_map, self.starts[agent_idx], self.goals[agent_idx], self.heuristics[agent_idx],
                               agent_idx, neighbor["constraints"])
+                neighbor["agent_costs"][agent_idx] = path_cost
                 if path is not None:
                     neighbor["paths"][agent_idx] = path
                     neighbor["collisions"] = detect_collisions_among_all_paths(neighbor["paths"], self.k)
-                    neighbor["cost"] = get_sum_of_path_lengths(neighbor["paths"])
+                    neighbor["cost"] = sum(neighbor["agent_costs"])
+                    neighbor['tot_path_len'] = get_sum_of_path_lengths(neighbor['paths'])
                     if DEBUG:
                         print(f"Neighbor with path {path}, constraint {constraint}, and {neighbor['collisions']} collisions.")
                     self.push_node(neighbor)

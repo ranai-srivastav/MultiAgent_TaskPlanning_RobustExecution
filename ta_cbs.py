@@ -56,6 +56,8 @@ class TACBSSolver(KRCBSSolver):
         # collisions  - list of collisions in paths.
         # Mc          - Mc[i][j] is the cost of the shortest path (under constraints) for agent i to target j.
         root = {'cost': 0,
+                'agent_costs': [],
+                'tot_path_length': 0,
                 'constraints': [],  # Like in CBS, a list of dictionaries, each dictionary is a constraint.
                 'collisions': [],  # Like in CBS.
                 'paths': [],  # The paths, one for each agent, that are planned for the optimal assignment under Mc.
@@ -76,10 +78,13 @@ class TACBSSolver(KRCBSSolver):
 
         for agent_idx in range(self.num_of_agents):
             curr_goal_loc = curr_goal_alloc[agent_idx]
-            root["paths"].append(a_star(self.my_map, self.starts[agent_idx], curr_goal_loc,
-                                        self.heuristics[opt_task_alloc[agent_idx]], agent_idx, root["constraints"]))
+            path, path_cost = a_star(self.my_map, self.starts[agent_idx], curr_goal_loc,
+                                     self.heuristics[opt_task_alloc[agent_idx]], agent_idx, root["constraints"])
+            root["agent_costs"].append(path_cost)
+            root["paths"].append(path)
 
-        root['cost'] = get_sum_of_path_lengths(root['paths'])
+        root['cost'] = sum(root['agent_costs'])
+        root['tot_path_length'] = get_sum_of_path_lengths(root['paths'])
         root['collisions'] = detect_collisions_among_all_paths(root['paths'], self.k)
         self.push_node(root)
 
@@ -112,29 +117,30 @@ class TACBSSolver(KRCBSSolver):
                 agent_idx = constraint["agent"]
                 # 3b. Replan the affected agent paths to all goals and update Mc with the costs.
                 for orig_goal_idx, orig_goal_loc in enumerate(self.goals):
-                    path = a_star(self.my_map, self.starts[agent_idx], orig_goal_loc, self.heuristics[orig_goal_idx],
+                    path, path_cost = a_star(self.my_map, self.starts[agent_idx], orig_goal_loc, self.heuristics[orig_goal_idx],
                                   agent_idx, neighbor["constraints"])
                     if path is not None:
-                        neighbor["Mc"][agent_idx][orig_goal_idx] = len(path) - 1
+                        neighbor["Mc"][agent_idx][orig_goal_idx] = path_cost
 
                     # 3c. Find the new optimal assignment and paths.
                 opt_task_alloc = hungarian_algorithm(dict2list(neighbor["Mc"]))
                 curr_goal_alloc = [self.goals[idx] for idx in opt_task_alloc]
 
                 paths_possible = True
-                for agent_idx in range(self.num_of_agents):
-                    path_i = a_star(self.my_map, self.starts[agent_idx], curr_goal_alloc[agent_idx],
-                                    self.heuristics[opt_task_alloc[agent_idx]], agent_idx, neighbor["constraints"])
+                for agent_i in range(self.num_of_agents):
+                    path_i, path_cost = a_star(self.my_map, self.starts[agent_i], curr_goal_alloc[agent_i],
+                                    self.heuristics[opt_task_alloc[agent_i]], agent_i, neighbor["constraints"])
+                    neighbor["agent_costs"][agent_i] = path_cost
                     if path_i is not None:
-                        neighbor["paths"][agent_idx] = path_i
+                        neighbor["paths"][agent_i] = path_i
                     else:
-                        neighbor["paths"][agent_idx] = float("inf")
                         paths_possible = False
                         break
 
                 if paths_possible:
                     neighbor["collisions"] = detect_collisions_among_all_paths(neighbor["paths"], self.k)
-                    neighbor["cost"] = get_sum_of_path_lengths(neighbor["paths"])
+                    neighbor["cost"] = sum(neighbor["agent_costs"])
+                    neighbor["tot_path_length"] = get_sum_of_path_lengths(neighbor["paths"])
 
                     # 3d. Add the new child CT node to the open list.
                     self.push_node(neighbor)

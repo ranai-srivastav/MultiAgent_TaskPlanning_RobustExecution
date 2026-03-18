@@ -184,8 +184,40 @@ Generated nodes: 5
 \section*{Task 9 - Implemented in code}
 
 \section*{Task 10 - }
+\begin{table}
+    \centering
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Map} & \textbf{TA-RANDOM} & \textbf{TA-DISTANCE} & \textbf{TA-CBS} \\
+        \midrule
+        Map 1 & 30, 6/11 & 16, 2/3 & 16, 2/3 \\
+        Map 4 & 31, 36/60 & 17, 4/6 & 17, 3/5 \\
+        Map 8 & 47, 3118/6004 & 14, 1/1 & 14, 1/1 \\
+        \bottomrule
+    \end{tabular}
+    \caption{<Sum of path lengths>, <Num nodes explored>/<Num nodes expanded>}
+    All maps except Map 8 using TA-RANDOM were solved in 0.0s, whereas Map 8 took 10.08s.
+    \label{tab:}
+\end{table}
+
 \section*{Task 11}
+Since the input paths for the execution come from a CBS run, we are guaranteed that paths are collision free unless a robot has a malfunction.
+In a general MAPF setting, assume 2-3 robots share the same path but separated by a sufficient distance k, where a robot visiting a location before another created a predecessor-successor relation.
+In this case, even if this path is not a corridor, successive agents might still fail to plan a path successfully around a failed predecessor robot.
+They might continue to wait for a robot with a failure, assuming that it will move but it might not.
+
 \section*{Task 12}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/TPG-Rollout.drawio}
+    \caption{For each agent R[1-4], the circles denote which vertex they will be at.
+    The vertex on the left denotes current time and the vertex on the right is the next location.}
+    \label{fig:tpg-rollout.drawio}
+
+    Here we can see that the TPG is cylcic and thus, when attempting to resolve this graph into a sequence of actions for each agent,
+    we will be not be able to decompose it. Because TPG has a cycle, it ialso is a good exmaple of a deadlock!
+
+\end{figure}
 \section*{Task 13}
 \section*{Task 14}
 \section*{Task 15}

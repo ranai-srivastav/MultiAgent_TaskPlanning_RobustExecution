@@ -3,7 +3,7 @@ import time as timer
 import heapq
 import random
 from copy import deepcopy
-from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost, get_k_deferred_location
+from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_path_lengths, get_k_deferred_location
 
 DEBUG = False
 
@@ -155,13 +155,13 @@ class KRCBSSolver(object):
                 'collisions': []}
 
         for i in range(self.num_of_agents):  # Find initial path for each agent
-            path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
+            path, path_cost = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
                           i, root['constraints'])
             if path is None:
                 raise BaseException('No solutions')
             root['paths'].append(path)
 
-        root['cost'] = get_sum_of_cost(root['paths'])
+        root['cost'] = get_sum_of_path_lengths(root['paths'])
         root['collisions'] = detect_collisions_among_all_paths(root['paths'], self.k)
         self.push_node(root)
 
@@ -175,7 +175,7 @@ class KRCBSSolver(object):
             if DEBUG:
                 print(self.a_star_calls)
 
-            if self.a_star_calls > 5000:
+            if self.a_star_calls > 100000:
                 raise BaseException("NO VALID PATH NOT FOUND")
 
             collision = curr_node["collisions"][0]
@@ -191,7 +191,7 @@ class KRCBSSolver(object):
                 if path is not None:
                     neighbor["paths"][agent_idx] = path
                     neighbor["collisions"] = detect_collisions_among_all_paths(neighbor["paths"], self.k)
-                    neighbor["cost"] = get_sum_of_cost(neighbor["paths"])
+                    neighbor["cost"] = get_sum_of_path_lengths(neighbor["paths"])
                     if DEBUG:
                         print(f"Neighbor with path {path}, constraint {constraint}, and {neighbor['collisions']} collisions.")
                     self.push_node(neighbor)
@@ -213,6 +213,6 @@ class KRCBSSolver(object):
         print("\n Found a solution! \n")
         CPU_time = timer.time() - self.start_time
         print("CPU time (s):    {:.2f}".format(CPU_time))
-        print("Sum of costs:    {}".format(get_sum_of_cost(node['paths'])))
+        print("Sum of costs:    {}".format(get_sum_of_path_lengths(node['paths'])))
         print("Expanded nodes:  {}".format(self.num_of_expanded))
         print("Generated nodes: {}".format(self.num_of_generated))

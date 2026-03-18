@@ -9,8 +9,6 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 
-\usepackage{amsmath}
-
 \DeclareMathOperator*{\minimize}{min}
 \DeclareMathOperator*{\maximize}{max}
 
@@ -74,19 +72,111 @@
 Homework 2 : Multi-Agent Path Finding (MAPF) \\
 {\small Instructor: Jiaoyang Li \;\;\; TA: Philip Huang, Jingtian Yan }\\
 }
-\author{Your Name Here}
+\author{Ranai Srivastav}
 
 \begin{document}
 
 \maketitle
 
-\textbf{Collaborators: }
+\textbf{Collaborators:}
 %Everyone you collaborated with and a short description of what you discussed.
 \begin{enumerate}
-    \item 
+    \item Tom Gao - Discussed problems, brainstormed edge cases
+    \item Claude  - Took help with understanding algorithms, format latex. All code is written by me.
 \end{enumerate}
 
-\section*{Task 1}
-Answer here and continue like this for all tasks. Enjoy this problem set!
+\section*{Task 1 - Included Code}
+
+\section*{Task 2 - Is there a need to find edge constraints when k $\geq$ 1}
+    \textbf{No, there is no need to find edge constraints when k is larger than 0.} \\
+    Let's assume two agents, A and B, where A is at P and B is at Q at time t.
+    By definition, an edge conflict will occur A tries to go to Q and B tries to go to P at time t+1.
+    Both P and Q are in the trajectories of each of the agents and since A and B can go from P to Q or vice versa in one timestep, P and Q must be neighbors.
+
+    Now there are two cases:
+    \begin{enumerate}
+        \item Agent A waits at current state for some non-zero number of steps, in which case an edge conflict cannot occur, only a vertex constraint. Thus, P and Q cannot be the same state.
+        \item Agent A has moved at timesteps t. For an edge conflict to occur, the next step for both agents must be within reach in one timestep.
+        This is only possible if both agents are in each other's 1-action neigborhood, which implies that any locations farther than the 1-action neighborhood do not need to be checked.
+        In other words, since the robots need to exchange positions along the same edge for an edge conflict, and agents cannot teleport, the states can only be one timestep away, exactly.
+    \end{enumerate}
+
+\section*{Task 3 - Included Code}
+\section*{Task 4 - Running Statistics}
+
+    \begin{table}[h]
+  \centering
+  \begin{tabular}{|l|c|c|c|c|}
+  \hline
+  \textbf{Map Name} & \textbf{CPU Time (s)} & \textbf{Sum of Costs} & \textbf{Num Expanded} & \textbf{Generated Nodes} \\
+  \hline
+  instances/test\_1.txt & 0.00 & 24 & 4  & 7   \\
+  instances/test\_1.txt & 0.11 & 28 & 78 & 155 \\
+  instances/test\_1.txt & 0.01 & 22 & 5  & 9   \\
+  instances/test\_1.txt & 0.04 & 26 & 29 & 57  \\
+  instances/test\_1.txt & 0.01 & 26 & 7  & 13  \\
+  instances/test\_1.txt & 0.01 & 26 & 7  & 13  \\
+  instances/test\_1.txt & 0.00 & 20 & 4  & 7   \\
+  instances/test\_1.txt & 0.00 & 24 & 2  & 3   \\
+  instances/test\_1.txt & 0.11 & 32 & 82 & 163 \\
+  instances/test\_1.txt & 0.00 & 28 & 2  & 3   \\
+  instances/test\_1.txt & 0.00 & 18 & 2  & 3   \\
+  instances/test\_1.txt & 0.01 & 28 & 8  & 15  \\
+  \hline
+  \end{tabular}
+  \caption{TA-Random results on instances/test\_1.txt ($k=2$, 12 samples)}
+  \label{tab:ta_random_stats}
+  \end{table}
+
+  \noindent\textbf{Stats on sum of costs (12 samples):}\\
+  \textbf{Mean = 25.16,\ Std.\ Dev.\ = 3.69,\ Variance $\approx$ 13.61}
+
+  \medskip
+  \noindent\textbf{Stats on number of generated nodes (12 samples):}\\
+  \textbf{Mean = 37.33,\ Std.\ Dev.\ = 56.18,\ Variance $\approx$ 3156.19}
+    
+\section*{Task 5 - Included Code}
+\section*{Task 6 - Stats for TA-Distance}
+CPU time (s):    0.02
+Sum of costs:    16
+Expanded nodes:  3
+Generated nodes: 5
+
+\section*{Task 7}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{images/unoptimal}
+    \caption{Assigning tasks once cannot take into account changing cost maps because of this task allocation}
+    \label{fig:unoptimal}
+\end{figure}
+
+    In the above map, the total distance minimizing allocation also increases the distance for the other agent. Since the Hungarian
+    algorithm assumes a static map, it cannot take a changed map into account because of it's allocations and plans a suboptimal path.
+
+\section*{Task 8}
+    This is not possible.
+    The Hungarian algorithm is optimal and complete for a bipartite graph given that an assignment does not cause a change in the graph.
+    If the costs change because of the assignment, the hungarian algorithm does not take this into account.
+    But if the only thing is that the map changes, if a path exists, CBS will find it, even if it is HIGHLY suboptimal.
+
+    In a trivial 1D case, the cost minimizing distance is always one that maintains the order.
+    \begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{images/task8-impossible}
+    \caption{I originially thought this was impossible but it is not}
+\end{figure}
+
+    In more complex cases, CBS will usually be able to find a path as long as all nodes are reachable from all nodes and costs are computed optimally.
+
+\section*{Task 9}
+\section*{Task 10}
+\section*{Task 11}
+\section*{Task 12}
+\section*{Task 13}
+\section*{Task 14}
+\section*{Task 15}
+\section*{Task 16}
+\section*{Task 17}
+\section*{Task 18}
 
 \end{document} % Done!

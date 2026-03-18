@@ -1,7 +1,8 @@
 import heapq
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 directions = [(0, -1), (1, 0), (0, 1), (-1, 0), (0, 0)]  # Move Left, Down, Right, Up, Wait
+
 
 def move(loc, dir):
     return loc[0] + directions[dir][0], loc[1] + directions[dir][1]
@@ -31,8 +32,7 @@ def is_valid_motion(old_loc, new_loc):
 
     return True
 
-
-def get_sum_of_cost(paths):
+def get_sum_of_path_lengths(paths):
     rst = 0
     if paths is None:
         return -1
@@ -41,7 +41,28 @@ def get_sum_of_cost(paths):
     return rst
 
 
-def compute_heuristics(my_map, goal):
+def increase_cost_1(cost: int, curr_loc: Tuple[int, int], node: Dict, dir: Tuple[int, int]) -> int:
+    return cost + 1
+
+def increase_cost_2(node: Dict) -> int:
+
+    cost_increase = 0
+    if node['g_val'] > 1:
+        prev_prev_loc = node["parent"]["parent"]["loc"]
+        prev_loc = node["parent"]["loc"]
+        curr_loc = node["loc"]
+
+        p2p_action = (prev_prev_loc[0] - prev_loc[0], prev_prev_loc[1] - prev_loc[1])
+        p2c_action =      (prev_loc[0] - curr_loc[0],      prev_loc[1] - curr_loc[1])
+
+        if p2p_action != p2c_action:
+            cost_increase += 1
+
+    return node["g_val"] + cost_increase
+
+
+
+def compute_heuristics(my_map, goal) -> Dict[Tuple[int, int], int]:
     # Use Dijkstra to build a shortest-path tree rooted at the goal location
     open_list = []
     closed_list = dict()
@@ -132,46 +153,6 @@ def get_location(path, time):
     else:
         return path[-1]
 
-def get_location_2(path: List[Tuple[int, int]], time: int, k: int = 0) -> List[Tuple[int, int]]:
-    """
-    Given a time as an integer index and k as a delta from time t to (time - k), inclusive, give all relevant paths
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 2, 0)
-    [(0, 2)]
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 2, 1)
-    [(0, 1), (0, 2)]
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 2, 2)
-    [(0, 0), (0, 1), (0, 2)]
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 2, 3)
-    [(0, 0), (0, 0), (0, 1), (0, 2)]
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 8, 3)
-    [(0, 4), (0, 4), (0, 4), (0, 4)]
-
-    >>> get_location_2([(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)], 8, 0)
-    [(0, 4)]
-    """
-    if k > len(path):
-        raise ValueError("k cannot be greater than path")
-
-    if time >= len(path):
-        path_idx = max(0, time - k)
-        num_repeat = max(0, time - len(path) + 1)
-        # assert (len(path) - path_idx) + num_repeat == k
-        return path[path_idx:] + [path[-1]] * num_repeat
-    elif time - k < 0:
-        num_path = abs(time - k)
-        num_repeat = k - num_path
-        assert num_path + num_repeat == k
-        return [path[0]] * num_repeat + path[1:num_path+1]
-    else:
-        return path[time-k:time+1]
-
-
-
 
 def get_path(goal_node):
     path = []
@@ -202,11 +183,11 @@ def is_constrained(curr_loc, next_loc, next_time, constraint_table):
 
 
 def push_node(open_list, node):
-    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
+    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['timestep'], node))
 
 
 def pop_node(open_list):
-    _, _, _, curr = heapq.heappop(open_list)
+    _, _, _, _, curr = heapq.heappop(open_list)
     return curr
 
 
@@ -260,6 +241,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
 
     push_node(open_list, root)
     closed_list[(root['loc'], root["timestep"])] = root
+
     while len(open_list) > 0:
         curr = pop_node(open_list)
 
@@ -269,21 +251,22 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
         #############################
         # Task 2.2: Adjust the goal test condition to handle goal constraints
         if curr['loc'] == goal_loc:
-            prev_goal_timestep = curr["timestep"]   #### <-----------------------------------
-            can_stop = True                         #
-            for k in agent_table.keys():            # To solve the case when a lower priority agent
-                if (k > prev_goal_timestep):        #  blocks a higher priority agent because A*
-                    can_stop = False                #  is myopic, I introduce a prev_goal_timestep
-                    break                           #  and check if there is a contraint in the
-                                                    # dict at a later timestep
-            if can_stop:                            #### <--------------------------------------
-                return get_path(curr)
+            prev_goal_timestep = curr["timestep"]  #### <-----------------------------------
+            can_stop = True  #
+            for k in agent_table.keys():  # To solve the case when a lower priority agent
+                if (k > prev_goal_timestep):  #  blocks a higher priority agent because A*
+                    can_stop = False  #  is myopic, I introduce a prev_goal_timestep
+                    break  #  and check if there is a contraint in the
+                    # dict at a later timestep
+            if can_stop:  #### <--------------------------------------
+                return get_path(curr), curr["g_val"]
 
         for dir in range(len(directions)):
             child_loc = move(curr['loc'], dir)
             if (not in_map(my_map, child_loc) or
                     my_map[child_loc[0]][child_loc[1]] or
-                    is_constrained(curr["loc"], child_loc, curr["timestep"]+1, agent_table)): # (curr["loc"] == (5, 4) or child_loc==(5, 4)) and agent in [5, 6]
+                    is_constrained(curr["loc"], child_loc, curr["timestep"] + 1,
+                                   agent_table)):  # (curr["loc"] == (5, 4) or child_loc==(5, 4)) and agent in [5, 6]
                 continue
 
             child = {'loc': child_loc,
@@ -291,6 +274,10 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
                      'h_val': h_values[child_loc],
                      'parent': curr,
                      "timestep": curr["timestep"] + 1}
+
+            ### To match the costs of the SMART simulator!
+            child["g_val"] = increase_cost_2(child)
+            #############################################
 
             if (child['loc'], child["timestep"]) in closed_list:
                 existing_node = closed_list[(child['loc'], child["timestep"])]

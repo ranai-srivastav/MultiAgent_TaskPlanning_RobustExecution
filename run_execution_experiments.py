@@ -11,7 +11,7 @@ from kr_cbs import KRCBSSolver
 from ta_random import TaRandomSolver
 from ta_distance import TaDistanceSolver
 from visualize import Animation
-from single_agent_planner import get_sum_of_cost
+from single_agent_planner import get_sum_of_path_lengths
 from run_experiments import *
 
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 has_collision = True
                 print("Collision detected at locations: {}".format(loc_next_set))
 
-        cost = get_sum_of_cost(paths)
+        cost = get_sum_of_path_lengths(paths)
         result_file.write("{},{},{}\n".format(file, cost, has_collision))
 
         if not args.batch:

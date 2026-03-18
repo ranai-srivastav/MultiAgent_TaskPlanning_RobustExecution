@@ -60,6 +60,7 @@ class WorksReallyWellExecutionManager(ExecutionManager):
         self.starts = starts
         self.goals = goals
         self.k = k
+        self.num_agents = len(self.starts)
 
         self.solver = TACBSSolver(self.my_map, self.starts, self.goals, self.k)
         self.paths = self.solver.find_solution()
@@ -79,16 +80,36 @@ class WorksReallyWellExecutionManager(ExecutionManager):
         Build temporal precedence constraints for path vertices.
         """
         ##############################
-        # TODO: Construct the TPG edges.
-        #
         # Suggested approach:
         # 1) Sweep time from 0 to max path length - 1.
+        max_path_len = -1
+        for path in self.paths:
+            max_path_len = max(max_path_len, len(path))
+
         # 2) Keep a dict "last_visit[loc] -> (agent_id, timestep)".
-        # 3) For each (agent_id, t), if another agent was the last visitor of
-        #    that cell, add a dependency into self.tpg_predecessor[agent_id][t].
-        # 4) Treat consecutive waits of the same agent in one cell as a single
-        #    visit so wait blocks do not generate self-dependencies.
-        pass
+        last_visit = dict()
+
+        for curr_t in range(max_path_len):
+            for curr_agent_idx in range(self.num_agents):
+                loc = get_location(self.paths[curr_agent_idx], curr_t)
+                if loc not in last_visit:
+                    last_visit[loc] = (curr_agent_idx, curr_t)
+                else:
+                    # 3) For each (agent_id, t), if another agent was the last visitor of
+                    #    that cell, add a dependency into self.tpg_predecessor[agent_id][t].
+                    prev_agent_idx, prev_agent_t = last_visit[loc]
+
+                    if prev_agent_idx != curr_agent_idx:
+                        if curr_t == prev_agent_t:
+                            raise ValueError("CBS FAILED???")
+                        else:
+                            self.tpg_predecessor[curr_agent_idx][curr_t] = (prev_agent_idx, prev_agent_t)
+                            last_visit[loc] = (curr_agent_idx, curr_t)
+                    else:
+                        last_visit[loc] = (prev_agent_idx, curr_t)
+
+                    # 4) Treat consecutive waits of the same agent in one cell as a single
+                    #    visit so wait blocks do not generate self-dependencies.
 
     def _next_non_wait_timestep(self, agent_id: int) -> int:
         """
@@ -111,10 +132,11 @@ class WorksReallyWellExecutionManager(ExecutionManager):
         pred = self.tpg_predecessor[agent_id][target_t]
         if pred is None:
             return True
+        else:
+            pred_agent_idx, pred_agent_t = pred
+            if self.agent_progress[pred_agent_idx] > pred_agent_t:
+                return True
 
-        ##############################
-        # TODO: Replace placeholder with your TPG readiness condition.
-        # Hint: compare predecessor progress to predecessor timestep.
         return False
 
     def get_next_location_for_all_agents(self) -> List[Tuple[int, int]]:

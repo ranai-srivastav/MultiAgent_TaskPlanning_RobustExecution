@@ -172,4 +172,11 @@ def hungarian_algorithm(agent_goal_costs: List[List[int]]) -> List[int]:
     Solves the assignment problem using scipy's linear_sum_assignment :/
     """
     rows_ids, col_ids = linear_sum_assignment(agent_goal_costs)
-    return col_ids
+    return list(col_ids)
+
+
+def dict2list(some_dict: Dict[int, List[int]]) -> List[List[int]]:
+    """
+    Solves the assignment problem using scipy's linear_sum_assignment :/
+    """
+    return [some_dict[k] for k in some_dict]

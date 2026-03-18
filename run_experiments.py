@@ -8,7 +8,7 @@ from ta_random import TaRandomSolver
 from ta_distance import TaDistanceSolver
 from ta_cbs import TACBSSolver
 from visualize import Animation
-from single_agent_planner import get_sum_of_cost
+from single_agent_planner import get_sum_of_path_lengths
 
 SOLVER = "KRCBS"
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         else:
             raise RuntimeError("Unknown solver!")
 
-        cost = get_sum_of_cost(paths)
+        cost = get_sum_of_path_lengths(paths)
         result_file.write("{},{}\n".format(file, cost))
 
         if args.smart:

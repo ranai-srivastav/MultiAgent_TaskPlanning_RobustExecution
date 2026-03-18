@@ -116,7 +116,7 @@ Homework 2 : Multi-Agent Path Finding (MAPF) \\
     \end{enumerate}
 
     Running KR-CBS with k=0 in a realistic setting would mean that we are very sure of each robot's execution and pose at all times.
-    This is an unrealisitic assumption and even if execution is not an issue, planning a path like this would mean robots will be too close to each other.
+    This is an unrealistic assumption and even if execution is not an issue, planning a path like this would mean robots will be too close to each other.
     If in a hierarchical planning framework, this would mean that the local agent-level trajectory follower will have to replan whenever the speed assumptions are violated.
 
 
@@ -172,7 +172,7 @@ Sum of costs:    16
 Expanded nodes:  3
 Generated nodes: 5
 The sum of costs is smaller for TA-DISTANCE and so is the number of generated nodes.
-The sum of the lengths of the paths of each agent is smaller than TA-DISTANCE and because TA-DISTANCE uses the hungarian algorithm which gaurantees the
+The sum of the lengths of the paths of each agent is smaller than TA-RANDOM and because TA-DISTANCE uses the hungarian algorithm which guarantees the
 optimal solution, this cost is the lowest possible cost achievable in this map given that any of the limitations of hungarian algorithm are not met such as a changing map.
 
 \section*{Task 7}
@@ -223,7 +223,7 @@ optimal solution, this cost is the lowest possible cost achievable in this map g
     All maps except Map 8 using TA-RANDOM were solved in 0.0s, whereas Map 8 took 10.08s.
     The assignment using TA-CBS is optimal in terms of number of nodes expanded and the path cost.
     Since the number of nodes expanded is smaller, the runtime also finished faster!
-    In this case, the difference between TA-DISTANCE and TA-CBS is negligible but in cases when the limtations of the hungarian algorithm are met,
+    In this case, the difference between TA-DISTANCE and TA-CBS is negligible but in cases when the limitations of the hungarian algorithm are encountered,
     such as if the map is dynamic in nature or a planned allocation ends up changing the map in some way. TA-CBS will be able to deal with these challenges better.
 \end{table}
 
@@ -281,7 +281,7 @@ They might continue to wait for a robot with a failure, assuming that it will mo
 \section*{Task 15}
     The cost reported by the \texttt{sum\_of\_costs} parameter is the sum of the actions taken by each of the agents.
     The action space for both the simulation environments is different - while we have a holonomic robot that can move freely in any direction, the robot in SMART can only rotate in place and move straight.
-    This means that to go from point A to B where A is at the bottom of a grid and B is at the top, a holonomic robot will have nearly half the cost of a non holonomic robot like the one in SMART.
+    This means that for a staircase (zigzag) path of $k$ moves alternating between two directions, the holonomic robot takes $k$ actions while the SMART robot requires $k$ moves plus $k-1$ rotations, totalling $2k-1$ actions --- nearly twice as many, or equivalently, the holonomic robot has approximately half the cost.
     Thus, the costs will differ.
 
     Since turning is now an action, this means that the robot's position does not change for 2 timesteps every time it rotates,
@@ -340,7 +340,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
                         break
 
                 if can_stop:
-                    return get_path(curr), curr["g_val"]  (*@\textbf{\textcolor{blue}{$\leftarrow$}}@*)
+                    return get_path(curr), curr["g_val"]  (*@\textcolor{red}{\textbf{<-- MODIFIED}}@*)
 
             for dir in range(len(directions)):
                 child_loc = move(curr['loc'], dir)
@@ -357,7 +357,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
                          "timestep": curr["timestep"] + 1}
 
                 ### To match the costs of the SMART simulator!
-                child["g_val"] = increase_cost_2(child)  (*@\textbf{\textcolor{blue}{$\leftarrow$}}@*)
+                child["g_val"] = increase_cost_2(child)  (*@\textcolor{red}{\textbf{<-- MODIFIED}}@*)
                 #############################################
 
                 if (child['loc'], child["timestep"]) in closed_list:
@@ -380,8 +380,8 @@ def increase_cost_2(node: Dict) -> int:
         prev_loc = node["parent"]["loc"]
         curr_loc = node["loc"]
 
-        p2p_action = (prev_prev_loc[0] - prev_loc[0], prev_prev_loc[1] - prev_loc[1])  (*@\textbf{\textcolor{blue}{$\leftarrow$}}@*)
-        p2c_action = (prev_loc[0] - curr_loc[0], prev_loc[1] - curr_loc[1])            (*@\textbf{\textcolor{blue}{$\leftarrow$}}@*)
+        p2p_action = (prev_prev_loc[0] - prev_loc[0], prev_prev_loc[1] - prev_loc[1])  (*@\textcolor{red}{\textbf{<-- MODIFIED}}@*)
+        p2c_action = (prev_loc[0] - curr_loc[0], prev_loc[1] - curr_loc[1])            (*@\textcolor{red}{\textbf{<-- MODIFIED}}@*)
 
         if p2p_action != p2c_action:
             cost_increase += 1
@@ -393,18 +393,18 @@ def increase_cost_2(node: Dict) -> int:
     \centering
     \begin{tabular}{lll}
         \toprule
-        \textbf{Map Name} & \textbf{Previous Cost } & \textbf{Modified Algorithm Cost} \\
+        \textbf{Map Name} & \textbf{Previous Cost } & \textbf{Modified Algorithm Cost}\\
         \midrule
-        Exp0, k1 - Python & 7, 2/2 in 0s &  \\
+        Exp0, k1 - TA-CBS & 7, 2/2 in 0s &  \\
         Exp0 - SMART &  &  \\
-        Exp2\_2 - Python & 7, 3/5 in 0.0s &  \\
+        Exp2\_2 - TA-CBS & 7, 3/5 in 0.0s &  \\
         Exp2\_2 - SMART &  &  \\
-        Test 20, k1 - Python & 33, 358/666 in 2.2s &  \\
-        Test 20 - SMART &  &  \\
-        Test 21, k1 - Python & 57, 793/1442 in 8.3s &  \\
-        Test 21 - SMART &  &  \\
-        Test 22, k1 - Python & 47, 18/35 in 0.1s &  \\
-        Test 22 - SMART &  &  \\
+        Test 20, k1 - TA-CBS & 33, 358/666 in 2.2s & 40, 358/666 in 2.7s\\
+        Test 20 - SMART & & 13, MS=23.5s, Avg=15.9  \\
+        Test 21, k1 - TA-CBS & 57, 793/1442 in 8.3s & 70, 793/1442 in 10.1s \\
+        Test 21 - SMART & & 28, MS=21.3s, Avg=16.2s  \\
+        Test 22, k1 - TA-CBS & 47, 18/35 in 0.1s &  \\
+        Test 22 - SMART & 10, MS=25.3s, Avg=17.9s &  \\
         \bottomrule
     \end{tabular}
     \caption{}

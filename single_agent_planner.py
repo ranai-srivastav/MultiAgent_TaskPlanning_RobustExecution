@@ -32,6 +32,7 @@ def is_valid_motion(old_loc, new_loc):
 
     return True
 
+
 def get_sum_of_path_lengths(paths):
     rst = 0
     if paths is None:
@@ -44,8 +45,8 @@ def get_sum_of_path_lengths(paths):
 def increase_cost_1(cost: int, curr_loc: Tuple[int, int], node: Dict, dir: Tuple[int, int]) -> int:
     return cost + 1
 
-def increase_cost_2(node: Dict) -> int:
 
+def increase_cost_2(node: Dict) -> int:
     cost_increase = 0
     if node['g_val'] > 1:
         prev_prev_loc = node["parent"]["parent"]["loc"]
@@ -53,13 +54,12 @@ def increase_cost_2(node: Dict) -> int:
         curr_loc = node["loc"]
 
         p2p_action = (prev_prev_loc[0] - prev_loc[0], prev_prev_loc[1] - prev_loc[1])
-        p2c_action =      (prev_loc[0] - curr_loc[0],      prev_loc[1] - curr_loc[1])
+        p2c_action = (prev_loc[0] - curr_loc[0], prev_loc[1] - curr_loc[1])
 
         if p2p_action != p2c_action:
             cost_increase += 1
 
     return node["g_val"] + cost_increase
-
 
 
 def compute_heuristics(my_map, goal) -> Dict[Tuple[int, int], int]:
@@ -254,7 +254,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
             prev_goal_timestep = curr["timestep"]  #### <-----------------------------------
             can_stop = True  #
             for k in agent_table.keys():  # To solve the case when a lower priority agent
-                if (k > prev_goal_timestep):  #  blocks a higher priority agent because A*
+                if k > prev_goal_timestep:  #  blocks a higher priority agent because A*
                     can_stop = False  #  is myopic, I introduce a prev_goal_timestep
                     break  #  and check if there is a contraint in the
                     # dict at a later timestep
@@ -288,4 +288,4 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints, max_path_l
                 closed_list[(child['loc'], child["timestep"])] = child
                 push_node(open_list, child)
 
-    return None, float('inf')  # Failed to find solutions
+    return None, float('inf')
